@@ -1,0 +1,144 @@
+"""
+Drone Delivery Thing
+Just some code to show UCS vs A*
+Author: Me lol
+"""
+
+import heapq
+import math
+
+# --------------------------
+# Setup
+# --------------------------
+
+class DroneProblem:
+    def __init__(self, g, start, pkgs):
+        self.g = g
+        self.start = start
+        self.pkgs = pkgs
+
+    def is_goal(self, state):
+        _, carried, done = state
+        return len(done) == len(self.pkgs)
+
+    def get_neighbors(self, state):
+        city, carried, done = state
+        nbrs = []
+
+        for (n, cost) in self.g[city]:
+            nbrs.append(((n, carried, done), cost))
+
+        if city in self.pkgs and city not in carried and city not in done:
+            nbrs.append(((city, carried | {city}, done), 0))
+
+        for pick, drop in self.pkgs.items():
+            if pick in carried and city == drop:
+                nbrs.append(((city, carried - {pick}, done | {pick}), 0))
+
+        return nbrs
+
+# --------------------------
+# UCS
+# --------------------------
+
+def ucs(problem):
+    start = (problem.start, frozenset(), frozenset())
+    frontier = [(0, start)]
+    visited = {}
+    expanded = 0
+
+    while frontier:
+        cost, state = heapq.heappop(frontier)
+        if state in visited and visited[state] <= cost:
+            continue
+        visited[state] = cost
+
+        if problem.is_goal(state):
+            return cost, expanded
+
+        expanded += 1
+        for ns, c in problem.get_neighbors(state):
+            heapq.heappush(frontier, (cost+c, ns))
+    return None, expanded
+
+# --------------------------
+# Heuristic
+# --------------------------
+
+def heuristic(state, problem):
+    city, carried, done = state
+    rem = []
+    for p, d in problem.pkgs.items():
+        if p not in done:
+            if p not in carried:
+                rem.append(p)
+            else:
+                rem.append(d)
+    if not rem:
+        return 0
+    coords = {'A':(0,0), 'B':(2,1), 'C':(4,0), 'D':(6,1), 'E':(8,0)}
+    cx, cy = coords[city]
+    return min(math.dist((cx,cy), coords[r]) for r in rem)
+
+# --------------------------
+# A*
+# --------------------------
+
+def astar(problem):
+    start = (problem.start, frozenset(), frozenset())
+    frontier = [(0, start)]
+    visited = {}
+    expanded = 0
+
+    while frontier:
+        f, state = heapq.heappop(frontier)
+        g = visited.get(state, math.inf)
+        real_g = f - heuristic(state, problem)
+        if state in visited and real_g >= visited[state]:
+            continue
+        visited[state] = real_g
+
+        if problem.is_goal(state):
+            return real_g, expanded
+
+        expanded += 1
+        for ns, c in problem.get_neighbors(state):
+            heapq.heappush(frontier, (real_g + c + heuristic(ns, problem), ns))
+    return None, expanded
+
+# --------------------------
+# Main
+# --------------------------
+
+if __name__ == "__main__":
+    g = {
+        'A':[('B',2),('C',4)],
+        'B':[('A',2),('D',3)],
+        'C':[('A',4),('D',2)],
+        'D':[('B',3),('C',2),('E',3)],
+        'E':[('D',3)]
+    }
+
+    pkgs = {'B':'E','C':'D'}
+
+    prob = DroneProblem(g,'A',pkgs)
+
+    print("\nMap & Packages:")
+    for city, edges in g.items():
+        print(city, "->", ", ".join(f"{n}({c})" for n,c in edges))
+    print("Packages:", pkgs)
+    print("Start at:", prob.start)
+    print("-"*30)
+
+    print("\nUCS Search:")
+    cost, exp = ucs(prob)
+    print("Cost:", cost)
+    print("Nodes expanded:", exp)
+
+    print("\nA* Search:")
+    cost2, exp2 = astar(prob)
+    print("Cost:", cost2)
+    print("Nodes expanded:", exp2)
+
+    print("\nComparison:")
+    print("UCS nodes:", exp, "vs A* nodes:", exp2)
