@@ -1,15 +1,6 @@
-"""
-Drone Delivery Thing
-Just some code to show UCS vs A*
-Author: Me lol
-"""
 
-import heapq
-import math
 
-# --------------------------
-# Setup
-# --------------------------
+
 
 class DroneProblem:
     def __init__(self, g, start, pkgs):
@@ -37,9 +28,7 @@ class DroneProblem:
 
         return nbrs
 
-# --------------------------
-# UCS
-# --------------------------
+
 
 def ucs(problem):
     start = (problem.start, frozenset(), frozenset())
@@ -61,9 +50,7 @@ def ucs(problem):
             heapq.heappush(frontier, (cost+c, ns))
     return None, expanded
 
-# --------------------------
-# Heuristic
-# --------------------------
+
 
 def heuristic(state, problem):
     city, carried, done = state
@@ -80,9 +67,7 @@ def heuristic(state, problem):
     cx, cy = coords[city]
     return min(math.dist((cx,cy), coords[r]) for r in rem)
 
-# --------------------------
-# A*
-# --------------------------
+
 
 def astar(problem):
     start = (problem.start, frozenset(), frozenset())
@@ -106,9 +91,7 @@ def astar(problem):
             heapq.heappush(frontier, (real_g + c + heuristic(ns, problem), ns))
     return None, expanded
 
-# --------------------------
-# Main
-# --------------------------
+
 
 if __name__ == "__main__":
     g = {
@@ -142,3 +125,4 @@ if __name__ == "__main__":
 
     print("\nComparison:")
     print("UCS nodes:", exp, "vs A* nodes:", exp2)
+
